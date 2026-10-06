@@ -17,7 +17,7 @@ class _MarketDetailScreenState extends State<MarketDetailScreen> {
   List<Candle> _candles = [];
   bool _loading = true;
   String? _error;
-  int _days = 7;
+  String _interval = '1h';
 
   @override
   void initState() {
@@ -25,48 +25,51 @@ class _MarketDetailScreenState extends State<MarketDetailScreen> {
     _load();
   }
 
-  Future<void> _load() async {
+ Future<void> _load() async {
+  setState(() {
+    _loading = true;
+    _error = null;
+  });
+  try {
+    final results = await Future.wait([
+      MarketService.price(widget.symbol),
+      MarketService.candles(widget.symbol, interval: _interval, limit: 500),
+    ]);
     setState(() {
-      _loading = true;
-      _error = null;
+      _price = results[0] as Price;
+      _candles = results[1] as List<Candle>;
+      _loading = false;
     });
-    try {
-      final results = await Future.wait([
-        MarketService.price(widget.symbol),
-        MarketService.candles(widget.symbol, days: _days),
-      ]);
-      setState(() {
-        _price = results[0] as Price;
-        _candles = results[1] as List<Candle>;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _reloadCandles(int days) async {
+  } catch (e) {
     setState(() {
-      _days = days;
-      _loading = true;
+      _error = e.toString();
+      _loading = false;
     });
-    try {
-      final candles = await MarketService.candles(widget.symbol, days: days);
-      setState(() {
-        _candles = candles;
-        _loading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
-    }
   }
+}
 
+Future<void> _reloadCandles(String interval) async {
+  setState(() {
+    _interval = interval;
+    _loading = true;
+  });
+  try {
+    final candles = await MarketService.candles(
+      widget.symbol,
+      interval: interval,
+      limit: 500,
+    );
+    setState(() {
+      _candles = candles;
+      _loading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _error = e.toString();
+      _loading = false;
+    });
+  }
+}
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -107,14 +110,13 @@ class _MarketDetailScreenState extends State<MarketDetailScreen> {
                     const SizedBox(height: 16),
 
                     // Таймфреймы
-                    SegmentedButton<int>(
+                    SegmentedButton<String>(
                       segments: const [
-                        ButtonSegment(value: 1, label: Text('1Д')),
-                        ButtonSegment(value: 7, label: Text('7Д')),
-                        ButtonSegment(value: 30, label: Text('30Д')),
-                        ButtonSegment(value: 365, label: Text('1Г')),
+                        ButtonSegment(value: '1h', label: Text('1H')),
+                        ButtonSegment(value: '4h', label: Text('4H')),
+                        ButtonSegment(value: '1d', label: Text('1D')),
                       ],
-                      selected: {_days},
+                      selected: {_interval},
                       onSelectionChanged: (s) => _reloadCandles(s.first),
                     ),
                     const SizedBox(height: 16),

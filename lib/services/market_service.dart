@@ -13,11 +13,15 @@ class MarketService {
     return Price.fromJson(data);
   }
 
-  static Future<List<Candle>> candles(String symbol, {int days = 7}) async {
-    final data = await ApiClient.get(
-      '/api/market/$symbol/candles/',
-      query: {'days': days.toString()},
-    );
-    return (data as List).map((j) => Candle.fromJson(j)).toList();
-  }
+  static Future<List<Candle>> candles(
+  String symbol, {
+  String interval = '1h',
+  int limit = 500,
+}) async {
+  final data = await ApiClient.get(
+    '/api/market/$symbol/candles/',
+    query: {'interval': interval, 'limit': limit.toString()},
+  );
+  return (data as List).map((j) => Candle.fromJson(j)).toList();
+}
 }

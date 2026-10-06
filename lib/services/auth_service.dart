@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 import '../models/user.dart';
 import 'api_client.dart';
 import 'token_store.dart';
@@ -43,5 +46,38 @@ class AuthService {
       }
     } catch (_) {}
     await TokenStore.clear();
+  }
+
+  /// Обновляет access-токен через refresh-токен.
+  /// Возвращает новый access или null, если refresh истёк.
+  static Future<String?> refreshAccess() async {
+    final refresh = await TokenStore.getRefresh();
+    if (refresh == null || refresh.isEmpty) return null;
+
+    try {
+      final r = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/api/auth/refresh/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': refresh}),
+      ).timeout(ApiConfig.timeout);
+
+      if (r.statusCode != 200) return null;
+
+      final data = jsonDecode(utf8.decode(r.bodyBytes));
+      final newAccess = data['access'] as String?;
+      if (newAccess == null) return null;
+
+      await TokenStore.saveAccess(newAccess);
+
+      // Если сервер выдал новый refresh (ROTATE_REFRESH_TOKENS), сохраняем его
+      final newRefresh = data['refresh'] as String?;
+      if (newRefresh != null && newRefresh.isNotEmpty) {
+        await TokenStore.save(access: newAccess, refresh: newRefresh);
+      }
+
+      return newAccess;
+    } catch (_) {
+      return null;
+    }
   }
 }

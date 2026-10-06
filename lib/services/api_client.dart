@@ -12,7 +12,14 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// Callback, вызывается когда refresh-токен истёк —
+/// нужно выкинуть пользователя на Login.
+typedef LogoutCallback = void Function();
+
 class ApiClient {
+  /// Устанавливается извне (main.dart) — что делать при истечении refresh.
+  static LogoutCallback? onUnauthorized;
+
   static Future<Map<String, String>> _headers({bool json = true}) async {
     final h = <String, String>{};
     if (json) h['Content-Type'] = 'application/json';
@@ -22,44 +29,117 @@ class ApiClient {
   }
 
   static Future<dynamic> get(String path, {Map<String, String>? query}) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}$path')
-        .replace(queryParameters: query);
-    final r = await http
-        .get(uri, headers: await _headers(json: false))
-        .timeout(ApiConfig.timeout);
-    return _handle(r);
+    return _withRetry(() async {
+      final uri = Uri.parse('${ApiConfig.baseUrl}$path')
+          .replace(queryParameters: query);
+      return http
+          .get(uri, headers: await _headers(json: false))
+          .timeout(ApiConfig.timeout);
+    });
   }
 
   static Future<dynamic> post(String path, {Map<String, dynamic>? body}) async {
-    final r = await http
-        .post(
-          Uri.parse('${ApiConfig.baseUrl}$path'),
-          headers: await _headers(),
-          body: body != null ? jsonEncode(body) : null,
-        )
-        .timeout(ApiConfig.timeout);
-    return _handle(r);
+    return _withRetry(() async {
+      return http
+          .post(
+            Uri.parse('${ApiConfig.baseUrl}$path'),
+            headers: await _headers(),
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(ApiConfig.timeout);
+    });
   }
 
   static Future<dynamic> patch(String path, {Map<String, dynamic>? body}) async {
-    final r = await http
-        .patch(
-          Uri.parse('${ApiConfig.baseUrl}$path'),
-          headers: await _headers(),
-          body: body != null ? jsonEncode(body) : null,
-        )
-        .timeout(ApiConfig.timeout);
-    return _handle(r);
+    return _withRetry(() async {
+      return http
+          .patch(
+            Uri.parse('${ApiConfig.baseUrl}$path'),
+            headers: await _headers(),
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(ApiConfig.timeout);
+    });
   }
 
   static Future<dynamic> delete(String path) async {
-    final r = await http
-        .delete(
-          Uri.parse('${ApiConfig.baseUrl}$path'),
-          headers: await _headers(json: false),
-        )
-        .timeout(ApiConfig.timeout);
-    return _handle(r);
+    return _withRetry(() async {
+      return http
+          .delete(
+            Uri.parse('${ApiConfig.baseUrl}$path'),
+            headers: await _headers(json: false),
+          )
+          .timeout(ApiConfig.timeout);
+    });
+  }
+
+  /// Выполняет запрос, при 401 пытается обновить токен и повторить запрос.
+  static Future<dynamic> _withRetry(
+      Future<http.Response> Function() request) async {
+    var response = await request();
+
+    if (response.statusCode != 401) {
+      return _handle(response);
+    }
+
+    // Пробуем обновить токен
+    final newAccess = await _tryRefresh();
+    if (newAccess == null) {
+      // Refresh истёк — уведомляем приложение
+      onUnauthorized?.call();
+      return _handle(response);
+    }
+
+    // Повторяем запрос с новым токеном
+    response = await request();
+    return _handle(response);
+  }
+
+  /// Вызывает AuthService.refreshAccess, но через late-import,
+  /// чтобы не было циклической зависимости.
+  static Future<String?> _tryRefresh() async {
+    // Импорт AuthService внутри функции — обход цикличности
+    // ignore: avoid_dynamic_calls
+    try {
+      final authService = await _loadAuthService();
+      return await authService();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<Future<String?> Function()> _loadAuthService() async {
+    // Разрываем цикл: используем динамический вызов.
+    // Проще: продублировать логику refresh здесь.
+    final refresh = await TokenStore.getRefresh();
+    if (refresh == null || refresh.isEmpty) return () async => null;
+
+    return () async {
+      try {
+        final r = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/api/auth/refresh/'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'refresh': refresh}),
+        ).timeout(ApiConfig.timeout);
+
+        if (r.statusCode != 200) return null;
+
+        final data = jsonDecode(utf8.decode(r.bodyBytes));
+        final newAccess = data['access'] as String?;
+        if (newAccess == null) return null;
+
+        await TokenStore.saveAccess(newAccess);
+
+        final newRefresh = data['refresh'] as String?;
+        if (newRefresh != null && newRefresh.isNotEmpty) {
+          await TokenStore.save(access: newAccess, refresh: newRefresh);
+        }
+
+        return newAccess;
+      } catch (_) {
+        return null;
+      }
+    };
   }
 
   static dynamic _handle(http.Response r) {

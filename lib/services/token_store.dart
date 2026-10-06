@@ -13,6 +13,11 @@ class TokenStore {
     await p.setString(_refreshKey, refresh);
   }
 
+  static Future<void> saveAccess(String access) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_accessKey, access);
+  }
+
   static Future<String?> getAccess() async {
     final p = await SharedPreferences.getInstance();
     return p.getString(_accessKey);
