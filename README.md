@@ -1,97 +1,92 @@
 # 📱 Trading Assistant — Flutter Client
 
-Мобильное и веб-приложение для [Trading Assistant](https://github.com/KinGsToN-dev/trading-assistant) — трейдинг-журнала на Django.
+![Flutter Tests](https://github.com/KinGsToN-dev/trading-app-flutter/actions/workflows/tests.yml/badge.svg)
+
+Flutter-приложение для [Trading Assistant](https://github.com/KinGsToN-dev/trading-assistant) — трейдинг-журнала на Django.
+
+**🌐 Демо:** https://trading-assistant-almaz.web.app
+
+**🔐 Тестовый аккаунт:** `admin@gmail.com` / `admin12345`
 
 ## ✨ Возможности
 
-- 🔐 **Аутентификация** — JWT (access + refresh), сохранение сессии
-- 🏠 **Дашборд** — статистика (Win Rate, PnL, средние), последние сделки
-- 📝 **Журнал сделок** — список с поиском, фильтрами (open/closed), сортировкой
-- 📄 **Детали сделки** — все поля: цены, время, PnL, MT5 ID, заметки
-- 📈 **Рыночные данные** — цены крипты (CoinGecko) и форекса (MT5)
-- 📊 **Свечные графики** — `fl_chart`, таймфреймы 1Д / 7Д / 30Д / 1Г
+- 🔐 **JWT-аутентификация** с auto-refresh
+- 🏠 **Dashboard** — статистика (Win Rate, PnL, avg), последние сделки
+- 📝 **Trades** — список с поиском, фильтрами, сортировкой
+- 📄 **Trade Detail** — все поля сделки
+- 📈 **Market** — 10 символов (6 крипты + EURUSD, GBPUSD, USDJPY, XAUUSD)
+- 📊 **Графики свечей** — `fl_chart`, таймфреймы 1H / 4H / 1D
 - ⚙️ **Settings** — привязка Telegram, переключатели уведомлений
-- 🌙 **Тёмная тема**
+- 🌙 **Светлая и тёмная тема**
 
 ## 🏗️ Стек
 
-| Слой | Технологии |
-|---|---|
-| Framework | Flutter 3.47, Dart 3.13 |
-| HTTP | `http` |
-| State | `setState` + сервисы |
-| Хранение | `shared_preferences` |
-| Графики | `fl_chart` |
-| Навигация | `MaterialPageRoute` |
+- **Flutter 3.47** + Dart 3.13
+- **fl_chart** — графики
+- **http** — API-запросы
+- **shared_preferences** — хранение JWT
+- **go_router** — навигация
 
 ## 🚀 Быстрый старт
 
-### Предварительно
-
-Убедитесь, что backend работает:
-
 ```bash
-cd trading-assistant/backend
-python manage.py runserver
-API будет доступен на http://127.0.0.1:8000.
-
-Запуск Flutter
-bash
 flutter pub get
 flutter run -d chrome
-Приложение откроется в Chrome по адресу http://localhost:XXXXX.
-
-Логин
-Используйте credentials вашего суперюзера (создаётся через python manage.py createsuperuser).
+⚠️ Backend должен работать. URL настраивается в lib/config/api_config.dart.
 
 📁 Структура
 text
 lib/
-├── config/
-│   └── api_config.dart        # URL backend
-├── models/                    # User, Trade, Price, Candle, Stats
-├── services/                  # API-клиент + сервисы
-│   ├── token_store.dart       # JWT в shared_preferences
-│   ├── api_client.dart        # HTTP + JWT + обработка ошибок
-│   ├── auth_service.dart
-│   ├── trades_service.dart
-│   ├── market_service.dart
-│   └── notifications_service.dart
-├── screens/                   # 8 экранов
-│   ├── login_screen.dart
-│   ├── register_screen.dart
-│   ├── main_shell.dart        # Bottom Navigation
-│   ├── dashboard_screen.dart
-│   ├── trades_screen.dart
-│   ├── trade_detail_screen.dart
-│   ├── market_screen.dart
-│   ├── market_detail_screen.dart
-│   └── settings_screen.dart
-├── widgets/                   # переиспользуемые
-│   ├── loading_overlay.dart
-│   ├── app_button.dart
-│   ├── stat_card.dart
-│   ├── trade_tile.dart
-│   ├── price_card.dart
-│   └── candle_chart.dart
+├── config/api_config.dart
+├── models/         # User, Trade, Price, Candle, Stats
+├── services/       # API-клиент, Auth, Trades, Market, Notifications
+├── screens/        # 8 экранов
+├── widgets/        # LoadingOverlay, AppButton, StatCard, TradeTile, PriceCard, CandleChart
 ├── theme/
-│   └── app_theme.dart         # светлая + тёмная
 └── main.dart
-🔧 Конфигурация API
-В lib/config/api_config.dart укажите URL вашего backend:
-
-dart
-static const String baseUrl = 'http://127.0.0.1:8000';
-Локально: http://127.0.0.1:8000
-
-Android-эмулятор: http://10.0.2.2:8000
-
-Реальное устройство: http://<IP_ПК>:8000
-
-Продакшен: публичный URL backend (Render)
-
+🧪 Тесты
+bash
+flutter test
 📄 Связанные проекты
-Backend: trading-assistant — Django + PostgreSQL + MT5 + Telegram
+Backend: trading-assistant
 
 📄 Лицензия
 MIT
+
+text
+
+---
+
+## 🏷️ Шаг 5: Topics на GitHub (5 минут)
+
+### Для `trading-assistant`:
+
+1. Откройте https://github.com/KinGsToN-dev/trading-assistant
+2. Справа от названия — **⚙️ шестерёнка** (Settings)
+3. **Topics:**
+django, python, rest-api, jwt, postgresql, flutter, trading, trading-journal,
+meta-trader-5, mt5, telegram-bot, biquote, binance, ci-cd, github-actions,
+full-stack, render, firebase, drf, ai-trading
+
+text
+4. **Description:**
+AI-ассистент трейдера: Django + PostgreSQL + JWT + MT5 + Biquote + Telegram
+
+text
+5. **Website:** `https://trading-assistant-backend-hih7.onrender.com/api/docs/`
+
+### Для `trading-app-flutter`:
+
+1. Откройте https://github.com/KinGsToN-dev/trading-app-flutter
+2. **Settings → Topics:**
+flutter, dart, trading, mobile, web, jwt, fl-chart, firebase-hosting,
+trading-app, crypto, forex, rest-api, django, full-stack
+
+text
+3. **Description:**
+Flutter client for Trading Assistant: Dashboard, Trades, Market with charts
+
+text
+4. **Website:** `https://trading-assistant-almaz.web.app`
+
+---
