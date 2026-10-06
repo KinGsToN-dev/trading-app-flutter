@@ -7,18 +7,20 @@ class PriceCard extends StatelessWidget {
 
   const PriceCard({super.key, required this.price, this.onTap});
 
+  /// Умное форматирование цены.
+  String _formatPrice(double p) {
+    if (p >= 1000) return p.toStringAsFixed(2);
+    if (p >= 100) return p.toStringAsFixed(2);
+    if (p >= 10) return p.toStringAsFixed(3);
+    if (p >= 1) return p.toStringAsFixed(5);
+    return p.toStringAsFixed(6);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isUp = price.isUp;
     final color = isUp ? Colors.green : Colors.red;
-
-    // Красивое форматирование числа
-    String formatPrice(double p) {
-      if (p >= 1000) return p.toStringAsFixed(2);
-      if (p >= 1) return p.toStringAsFixed(4);
-      return p.toStringAsFixed(6);
-    }
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -29,7 +31,6 @@ class PriceCard extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Иконка источника
               Container(
                 width: 44,
                 height: 44,
@@ -60,11 +61,13 @@ class PriceCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      price.source == 'mt5'
-                          ? 'MetaTrader 5'
-                          : price.source == 'coingecko'
-                              ? 'CoinGecko'
-                              : price.source,
+                      price.source == 'biquote'
+                          ? 'Biquote'
+                          : price.source == 'binance'
+                              ? 'Binance'
+                              : price.source == 'mt5'
+                                  ? 'MetaTrader 5'
+                                  : price.source,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontSize: 11,
@@ -77,7 +80,7 @@ class PriceCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    formatPrice(price.price),
+                    _formatPrice(price.price),
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

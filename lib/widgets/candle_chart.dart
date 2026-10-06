@@ -12,6 +12,17 @@ class CandleChart extends StatelessWidget {
     this.lineColor = Colors.green,
   });
 
+  /// Возвращает количество десятичных знаков в зависимости от диапазона.
+  int _decimalsFor(double range) {
+    if (range < 0.001) return 6;
+    if (range < 0.01) return 5;
+    if (range < 0.1) return 4;
+    if (range < 1) return 3;
+    if (range < 10) return 2;
+    if (range < 100) return 1;
+    return 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (candles.isEmpty) {
@@ -26,7 +37,10 @@ class CandleChart extends StatelessWidget {
 
     final minY = candles.map((c) => c.low).reduce((a, b) => a < b ? a : b);
     final maxY = candles.map((c) => c.high).reduce((a, b) => a > b ? a : b);
-    final padding = (maxY - minY) * 0.1;
+    final range = maxY - minY;
+    final padding = range * 0.1;
+    final decimals = _decimalsFor(range);
+    final step = range / 5;
 
     final isUp = candles.last.close >= candles.first.open;
     final color = isUp ? Colors.green : Colors.red;
@@ -38,7 +52,7 @@ class CandleChart extends StatelessWidget {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          horizontalInterval: (maxY - minY) / 5,
+          horizontalInterval: step,
           getDrawingHorizontalLine: (value) => FlLine(
             color: Colors.grey.withOpacity(0.1),
             strokeWidth: 1,
@@ -48,11 +62,16 @@ class CandleChart extends StatelessWidget {
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 60,
+              reservedSize: 70, // больше места для 5-6 знаков
+              interval: step,   // шаг сетки по оси Y
               getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toStringAsFixed(0),
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                return Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Text(
+                    value.toStringAsFixed(decimals),
+                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    textAlign: TextAlign.right,
+                  ),
                 );
               },
             ),
@@ -71,9 +90,8 @@ class CandleChart extends StatelessWidget {
                   return const SizedBox.shrink();
                 }
                 final c = candles[idx];
-                // Каждые N свечей показываем дату
-                final step = (candles.length / 5).ceil();
-                if (idx % step != 0) return const SizedBox.shrink();
+                final stepCount = (candles.length / 5).ceil();
+                if (idx % stepCount != 0) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
@@ -117,7 +135,7 @@ class CandleChart extends StatelessWidget {
                 final c = candles[spot.x.toInt()];
                 return LineTooltipItem(
                   '${c.timestamp.day}.${c.timestamp.month} ${c.timestamp.hour}:00\n'
-                  '${c.close.toStringAsFixed(2)}',
+                  '${c.close.toStringAsFixed(decimals)}',
                   const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
